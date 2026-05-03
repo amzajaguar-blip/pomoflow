@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tar *)",
+      "Bash(dmesg)",
+      "Bash(git init)",
+      "Bash(git remote *)"
+    ]
+  },
+  "$version": 3
+}
