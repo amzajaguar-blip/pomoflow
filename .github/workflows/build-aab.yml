@@ -1,0 +1,33 @@
+name: Build AAB
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Concedi permessi a gradlew
+        run: chmod +x gradlew
+      - name: Build AAB Release
+        run: |
+          export GRADLE_OPTS="-Xmx4g -Dorg.gradle.daemon=false"
+          ./gradlew :app:bundleRelease --no-daemon --console=plain
+      - name: Rinomina AAB
+        run: |
+          cp app/build/outputs/bundle/release/app-release.aab pomoflow-release.aab
+      - name: Carica AAB come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pomoflow-aab
+          path: pomoflow-release.aab
