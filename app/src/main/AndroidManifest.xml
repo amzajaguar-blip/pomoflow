@@ -38,7 +38,8 @@
         <activity android:name="com.google.android.gms.ads.AdActivity"
             android:theme="@android:style/Theme.Translucent"
             android:exported="false"
-            android:configChanges="smallestScreenSize|screenSize|uiMode|screenLayout|orientation|keyboardHidden|keyboard"/>
+            android:configChanges="smallestScreenSize|screenSize|uiMode|screenLayout|orientation|keyboardHidden|keyboard"
+            tools:replace="android:configChanges"/>
 
     </application>
 
