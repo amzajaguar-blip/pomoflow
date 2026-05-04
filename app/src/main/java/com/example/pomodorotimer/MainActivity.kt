@@ -13,15 +13,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pomodorotimer.data.AdvancedBillingManager
+import com.example.pomodorotimer.data.EnterpriseSettingsManager
 import com.example.pomodorotimer.data.PomodoroPrefs
 import com.example.pomodorotimer.ui.components.*
 import com.example.pomodorotimer.ui.theme.PomodoroTimerTheme
 import com.example.pomodorotimer.utils.Constants
-//import com.google.android.gms.ads.MobileAds
 
 /**
- * Activity principale dell'app Pomodoro Pro
- * Gestisce l'inizializzazione dell'app e la configurazione del tema
+ * Activity principale dell'app PomoFlow Pro Enterprise
+ * Gestisce l'inizializzazione dell'app, billing e tema
  */
 class MainActivity : ComponentActivity() {
 
@@ -31,16 +32,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "MainActivity creata")
+        Log.d(TAG, "PomoFlow Pro Enterprise avviato")
 
         try {
-            // Inizializzazione Mobile Ads
-            //MobileAds.initialize(this) {}
-
-            // Setup del content con ViewModel retainato via Factory
             setContent {
                 val prefs = remember { PomodoroPrefs(this@MainActivity) }
-                val factory = remember { PomodoroViewModelFactory(prefs) }
+                val billing = remember { AdvancedBillingManager(this@MainActivity) }
+                val settings = remember { EnterpriseSettingsManager(this@MainActivity) }
+                val factory = remember { PomodoroViewModelFactory(prefs, billing, settings) }
                 val viewModel: PomodoroViewModel = viewModel(factory = factory)
 
                 PomodoroTimerTheme {
@@ -59,84 +58,100 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Factory per creare PomodoroViewModel con dipendenze
- * Necessaria per retainare il ViewModel attraverso i configuration changes
+ * Factory enterprise per creare PomodoroViewModel con tutte le dipendenze
  */
 class PomodoroViewModelFactory(
-    private val prefs: PomodoroPrefs
+    private val prefs: PomodoroPrefs,
+    private val billing: AdvancedBillingManager,
+    private val settings: EnterpriseSettingsManager
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PomodoroViewModel::class.java)) {
-            return PomodoroViewModel(prefs) as T
+            return PomodoroViewModel(prefs, billing, settings) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
 
 /**
- * Composable principale dell'app
- * Organizza tutti i componenti UI
+ * Composable principale dell'app enterprise
  */
 @Composable
 fun PomodoroApp(viewModel: PomodoroViewModel) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Constants.PADDING_LARGE.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Sezione superiore: Task
-        TasksSection(
-            tasks = viewModel.tasks,
-            onTaskUpdate = { index, task -> viewModel.updateTask(index, task) }
-        )
+    val isPremium by viewModel.isPremium.collectAsState()
 
-        // Sezione centrale: Timer e controlli
+    Scaffold(
+        bottomBar = {
+            if (!isPremium) {
+                PremiumBottomBar(onUpgrade = { viewModel.upgradeToLifetime() })
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxSize()
+                .padding(padding)
+                .padding(Constants.PADDING_LARGE.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            TimerDisplay(
-                timeFormatted = viewModel.formatTime(viewModel.timeLeft.value),
-                isBreak = viewModel.isBreak.value
+            // Enterprise Header
+            EnterpriseHeader(pomodorosCompleted = viewModel.pomodorosCompleted.value)
+
+            // Sezione centrale: Timer e controlli
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                TimerDisplay(
+                    timeFormatted = viewModel.formatTime(viewModel.timeLeft.value),
+                    isBreak = viewModel.isBreak.value
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                TimerControls(
+                    isRunning = viewModel.isRunning.value,
+                    onStartFocus = { viewModel.startTimer(Constants.FOCUS_SESSION_MINUTES, false) },
+                    onStartBreak = { viewModel.startTimer(Constants.BREAK_SESSION_MINUTES, true) },
+                    onStop = { viewModel.stopTimer() }
+                )
+            }
+
+            // Enterprise Features Grid
+            EnterpriseFeaturesGrid(isPremium = isPremium)
+
+            // Tasks Section
+            TasksSection(
+                tasks = viewModel.tasks,
+                onTaskUpdate = { index, task -> viewModel.updateTask(index, task) }
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // Sezione inferiore
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ErrorMessage(
+                    message = viewModel.errorMessage.value,
+                    onDismiss = { viewModel.clearError() }
+                )
 
-            TimerControls(
-                isRunning = viewModel.isRunning.value,
-                onStartFocus = { viewModel.startTimer(Constants.FOCUS_SESSION_MINUTES, false) },
-                onStartBreak = { viewModel.startTimer(Constants.BREAK_SESSION_MINUTES, true) },
-                onStop = { viewModel.stopTimer() }
-            )
-        }
+                Spacer(modifier = Modifier.height(Constants.PADDING_MEDIUM.dp))
 
-        // Sezione inferiore: Statistiche e annunci
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Messaggio di errore
-            ErrorMessage(
-                message = viewModel.errorMessage.value,
-                onDismiss = { viewModel.clearError() }
-            )
+                StatsCard(pomodorosCompleted = viewModel.pomodorosCompleted.value)
 
-            Spacer(modifier = Modifier.height(Constants.PADDING_MEDIUM.dp))
+                Spacer(modifier = Modifier.height(Constants.PADDING_LARGE.dp))
 
-            // Card statistiche
-            StatsCard(pomodorosCompleted = viewModel.pomodorosCompleted.value)
-
-            Spacer(modifier = Modifier.height(Constants.PADDING_LARGE.dp))
-
-            // Banner AdMob
-            AdBanner()
+                if (!isPremium) {
+                    AdBanner()
+                }
+            }
         }
     }
 }

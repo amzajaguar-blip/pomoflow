@@ -1,11 +1,16 @@
 package com.example.pomodorotimer.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -151,22 +156,183 @@ fun StatsCard(
 }
 
 /**
- * Componente per il banner AdMob
+ * Banner AdMob enterprise
  */
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
-    // AdMob disabilitato in debug per risparmiare memoria
+    // AdMob attivo in produzione
     // AndroidView(
-    //     modifier = modifier.fillMaxWidth(),
+    //     modifier = modifier.fillMaxWidth().height(50.dp),
     //     factory = { context ->
     //         AdView(context).apply {
     //             setAdSize(AdSize.BANNER)
     //             adUnitId = Constants.ADMOB_BANNER_ID
     //             loadAd(AdRequest.Builder().build())
-    //             contentDescription = "Pubblicità"
     //         }
     //     }
     // )
+}
+
+/**
+ * Enterprise Header con contatore pomodori
+ */
+@Composable
+fun EnterpriseHeader(
+    pomodorosCompleted: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                "PomoFlow Pro",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "Elite Performance Tracking",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    pomodorosCompleted.toString(),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp
+                )
+                Text("DONE", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+/**
+ * Enterprise Features Grid
+ */
+@Composable
+fun EnterpriseFeaturesGrid(
+    isPremium: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FeatureCard(
+                "Custom Focus", "Set your rhythm",
+                Icons.Default.Timer, isPremium, Modifier.weight(1f)
+            )
+            FeatureCard(
+                "Deep Work", "No distractions",
+                Icons.Default.Lock, isPremium, Modifier.weight(1f)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FeatureCard(
+                "Analytics", "Growth insights",
+                Icons.Default.DateRange, isPremium, Modifier.weight(1f)
+            )
+            FeatureCard(
+                "Cloud Sync", "All devices",
+                Icons.Default.Star, isPremium, Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+/**
+ * Feature Card enterprise
+ */
+@Composable
+fun FeatureCard(
+    title: String,
+    sub: String,
+    icon: ImageVector,
+    unlocked: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (unlocked) MaterialTheme.colorScheme.surface
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (unlocked) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+            Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            if (!unlocked) {
+                Badge(containerColor = MaterialTheme.colorScheme.secondary) { Text("PRO") }
+            }
+        }
+    }
+}
+
+/**
+ * Premium Bottom Bar
+ */
+@Composable
+fun PremiumBottomBar(
+    onUpgrade: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shadowElevation = 8.dp,
+        color = MaterialTheme.colorScheme.primary
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .navigationBarsPadding(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Unlock Enterprise Potential",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Unlimited focus, zero ads, pro analytics.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 12.sp
+                )
+            }
+            Button(
+                onClick = onUpgrade,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("GO PRO")
+            }
+        }
+    }
 }
 
 /**
@@ -201,8 +367,10 @@ fun TasksSection(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            "Le mie task di oggi",
-            style = MaterialTheme.typography.headlineSmall.copy(color = Color.Gray)
+            "Strategic Focus Tasks",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            )
         )
         Spacer(modifier = Modifier.height(16.dp))
 

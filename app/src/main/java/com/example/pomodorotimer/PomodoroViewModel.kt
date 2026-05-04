@@ -6,17 +6,24 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pomodorotimer.data.AdvancedBillingManager
+import com.example.pomodorotimer.data.EnterpriseSettingsManager
 import com.example.pomodorotimer.data.PomodoroPrefs
 import com.example.pomodorotimer.utils.Constants
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel per la gestione della logica dell'app Pomodoro
- * Gestisce il timer, i task e la persistenza dei dati
+ * ViewModel enterprise per PomoFlow Pro
+ * Gestisce timer, task, billing enterprise e settings
  */
-class PomodoroViewModel(private val prefs: PomodoroPrefs) : ViewModel() {
+class PomodoroViewModel(
+    private val prefs: PomodoroPrefs,
+    private val billing: AdvancedBillingManager,
+    private val settings: EnterpriseSettingsManager
+) : ViewModel() {
 
     companion object {
         private const val TAG = "PomodoroViewModel"
@@ -38,6 +45,14 @@ class PomodoroViewModel(private val prefs: PomodoroPrefs) : ViewModel() {
 
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
+
+    // Enterprise: stato premium
+    val isPremium: StateFlow<Boolean> = billing.isPremium
+
+    // Enterprise: settings
+    val focusDuration: State<Int> = settings.focusDuration
+    val breakDuration: State<Int> = settings.breakDuration
+    val autoStartNext: State<Boolean> = settings.autoStartNext
 
     // Task list
     val tasks = mutableStateListOf<String>().apply {
@@ -84,6 +99,12 @@ class PomodoroViewModel(private val prefs: PomodoroPrefs) : ViewModel() {
                 _pomodorosCompleted.value = prefs.getPomodorosToday()
                 Log.d(TAG, "Pomodoro completato. Totale: ${_pomodorosCompleted.value}")
             }
+            // Auto-start next session se abilitato
+            if (autoStartNext.value) {
+                val nextIsBreak = !_isBreak.value
+                val duration = if (nextIsBreak) breakDuration.value else focusDuration.value
+                startTimer(duration, nextIsBreak)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Errore nel completamento del timer: ${e.message}", e)
             _errorMessage.value = "Errore nel salvataggio del pomodoro"
@@ -118,6 +139,14 @@ class PomodoroViewModel(private val prefs: PomodoroPrefs) : ViewModel() {
             Log.e(TAG, "Errore nell'aggiornamento del task: ${e.message}", e)
             _errorMessage.value = "Errore nel salvataggio del task"
         }
+    }
+
+    /**
+     * Enterprise: avvia upgrade a lifetime premium
+     */
+    fun upgradeToLifetime() {
+        // In una release reale, qui si chiamerebbe billing.checkout(activity, AdvancedBillingManager.PRODUCT_LIFETIME)
+        Log.d(TAG, "Upgrade to lifetime richiesto")
     }
 
     /**
