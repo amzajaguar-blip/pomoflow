@@ -30,7 +30,7 @@ jobs:
         run: |
           export GRADLE_OPTS="-Xmx4g -Dorg.gradle.daemon=false"
           ./gradlew :app:assembleRelease --no-daemon --console=plain --stacktrace
-        timeout-minutes: 15
+        timeout-minutes: 25
 
       - name: Rinomina APK
         run: |
