@@ -256,6 +256,7 @@ fun EnterpriseFeaturesGrid(
 /**
  * Feature Card enterprise
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeatureCard(
     title: String,
